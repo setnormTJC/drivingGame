@@ -6,21 +6,24 @@
 #include <SDL3/SDL.h>
 
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH = 1200;
+const int WINDOW_HEIGHT = 800;
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 SDL_Texture* texture = nullptr;
 struct car
 {
+	SDL_Texture* playerTexture;
+	SDL_FRect position;
 	double positionX;
 	double positionY;
 	double rotation;
 	double velocityX;
 	double velocityY;
+
 };
-const float ROTATION_SPEED = 2.5f;
-const float ACCELERATION = 1.0f;
+const float ROTATION_SPEED = 0.1f;
+const float ACCELERATION = 1000.0f;
 
 
 void handleInputandLogic(car& playercar, float deltaTime)
@@ -48,11 +51,12 @@ void handleInputandLogic(car& playercar, float deltaTime)
 		playercar.velocityX -= direction.x * ACCELERATION * deltaTime;
 		playercar.velocityY -= direction.y * ACCELERATION * deltaTime;
 	}
-	else
-	{
-		playercar.velocityX -= direction.x * 0.1 * deltaTime;
-		playercar.velocityY -= direction.y * 0.1 * deltaTime;
-	}
+	
+
+	float DRAG_FACTOR = 0.999f; // Adjust this value between 0.95 and 0.999
+	playercar.velocityX *= DRAG_FACTOR;
+	playercar.velocityY *= DRAG_FACTOR;
+	
 
 	playercar.positionX += playercar.velocityX * deltaTime;
 	playercar.positionY += playercar.velocityY * deltaTime;
@@ -104,6 +108,9 @@ int main()
 
 
 	car player;
+
+
+	
 	window = SDL_CreateWindow("Driving", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
 	if (!window) {
 		logSDLError("SDL_CreateWindow");
@@ -118,13 +125,34 @@ int main()
 		return 1;
 	}
 	loadMedia();
+	if (loadMedia()) {
+		
+		player.playerTexture = loadTexture("car.bmp");
 
+		// Initialize position/size ONCE
+		player.position = { 500.0f, 500.0f, 25.0f, 10.0f };
+		player.positionX = player.position.x;
+		player.positionY = player.position.y;
+		player.rotation = 0.0;
+		player.velocityX = 0.0;
+		player.velocityY = 0.0;
+	}
+	else {
+		// Handle media loading failure
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
+		SDL_Quit();
+		return 1;
+	}
 	
-	
+	auto last_time = std::chrono::high_resolution_clock::now();
 	bool running = true;
 	SDL_Event event;
 	while (running)
 	{
+		auto current_time = std::chrono::high_resolution_clock::now();
+		float deltaTime = std::chrono::duration<float>(current_time - last_time).count();
+		last_time = current_time;
 		while (SDL_PollEvent(&event))
 		{
 			if (event.type == SDL_EVENT_QUIT)
@@ -132,8 +160,16 @@ int main()
 				running = false;
 			}
 		}
+		handleInputandLogic(player, deltaTime);
+		player.position.x = (float)player.positionX;
+		player.position.y = (float)player.positionY;
+
 		SDL_RenderClear(renderer);
 		SDL_RenderTexture(renderer, texture, nullptr, nullptr);
+
+		SDL_RenderTextureRotated(renderer, player.playerTexture, nullptr, &player.position,
+			player.rotation, nullptr, SDL_FLIP_NONE);
+
 		SDL_RenderPresent(renderer);
 	}
 }
