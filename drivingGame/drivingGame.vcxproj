@@ -25,6 +25,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="drivingGame.cpp" />
+    <ClCompile Include="Functions.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="functions.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

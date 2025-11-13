@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <SDL3/SDL.h>
+#include "functions.h"
 
 
 const int WINDOW_WIDTH = 1200;
@@ -22,17 +23,20 @@ struct car
 	double velocityY;
 
 };
-const float ROTATION_SPEED = 0.1f;
-const float ACCELERATION = 1000.0f;
+//const float ROTATION_SPEED = 0.1f;
+const float ACCELERATION = 1200.0f;
 
 
 void handleInputandLogic(car& playercar, float deltaTime)
 {
 	SDL_PumpEvents();
 	const bool* keystate = SDL_GetKeyboardState(NULL);
+	
 	float radians = playercar.rotation * M_PI / 180.0f;
 	SDL_FPoint direction = { cos(radians), sin(radians) };
-
+	
+	float ROTATION_SPEED = 0.0005 * (sqrt(pow(playercar.velocityX, 2) + pow(playercar.velocityY, 2)));
+	
 	if (keystate[SDL_SCANCODE_LEFT])
 	{
 		playercar.rotation -= ROTATION_SPEED;
@@ -53,7 +57,7 @@ void handleInputandLogic(car& playercar, float deltaTime)
 	}
 	
 
-	float DRAG_FACTOR = 0.999f; // Adjust this value between 0.95 and 0.999
+	float DRAG_FACTOR = 0.999f;
 	playercar.velocityX *= DRAG_FACTOR;
 	playercar.velocityY *= DRAG_FACTOR;
 	
@@ -109,7 +113,7 @@ int main()
 
 	car player;
 
-
+	
 	
 	window = SDL_CreateWindow("Driving", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
 	if (!window) {
@@ -144,7 +148,11 @@ int main()
 		SDL_Quit();
 		return 1;
 	}
-	
+	SDL_Surface* backgroundSurface = SDL_LoadBMP("track.bmp");
+
+	SDL_Color color = { 34, 177, 76 };
+	Uint32 collisionColor = SDL_MapRGB( backgroundSurface->format, color.r, color.g, color.b );
+
 	auto last_time = std::chrono::high_resolution_clock::now();
 	bool running = true;
 	SDL_Event event;
@@ -153,6 +161,11 @@ int main()
 		auto current_time = std::chrono::high_resolution_clock::now();
 		float deltaTime = std::chrono::duration<float>(current_time - last_time).count();
 		last_time = current_time;
+
+		double nextX = player.positionX + player.velocityX;
+		double nextY = player.positionY + player.velocityY;
+
+		if (!checkCollision (nextX, nextY, backgroundSurface, collisionColor))
 		while (SDL_PollEvent(&event))
 		{
 			if (event.type == SDL_EVENT_QUIT)
